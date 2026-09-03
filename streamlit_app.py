@@ -53,10 +53,8 @@ def build():
         pipe = _pipe(_new(name)).fit(X_tr, y_tr)
         p = pipe.predict(X_te)
         mse = mean_squared_error(y_te, p)
-        cv = -cross_val_score(_pipe(_new(name)), X, y, cv=5,
-                              scoring="neg_mean_absolute_error")
-        rows[name] = {"MAE": mean_absolute_error(y_te, p), "RMSE": mse ** 0.5,
-                      "CV-MAE": cv.mean(), "CV-std": cv.std()}
+        cv = -cross_val_score(_pipe(_new(name)), X, y, cv=5, scoring="neg_mean_absolute_error")
+        rows[name] = {"MAE": mean_absolute_error(y_te, p), "RMSE": mse ** 0.5, "CV-MAE": cv.mean(), "CV-std": cv.std()}
     comparison = pd.DataFrame(rows).T
     winner = comparison["CV-MAE"].idxmin()
     model = _pipe(_new(winner)).fit(X, y)
@@ -89,8 +87,7 @@ def estimate(car: dict) -> dict:
 def deal(car: dict, asking: int) -> dict:
     predicted = model.predict(pd.DataFrame([car])[CAT + NUM])[0]
     pct = (predicted - asking) / predicted
-    verdict = ("fynd" if pct >= DEAL_THRESHOLD
-               else "dyr" if pct <= -DEAL_THRESHOLD else "marknadspris")
+    verdict = ("fynd" if pct >= DEAL_THRESHOLD else "dyr" if pct <= -DEAL_THRESHOLD else "marknadspris")
     return {"predicted": predicted, "pct": pct, "verdict": verdict}
 
 
