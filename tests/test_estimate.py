@@ -30,3 +30,14 @@ def test_estimate_private_vs_dealer(tmp_path):
     assert result["privat"] > 0 and result["handlare"] > 0
     # Handlare tar påslag i den syntetiska prismodellen -> ska synas.
     assert result["handlare"] > result["privat"]
+
+
+def test_valuation_applies_20pct_discount(tmp_path):
+    df = pd.DataFrame([lst.model_dump() for lst in synthetic.generate(400)])
+    model_path = tmp_path / "model.joblib"
+    train.train(df, model_path=model_path)
+
+    car = {"brand": "Volvo", "model": "V60", "model_year": 2019, "mileage_km": 50_000,
+           "horsepower": 150, "fuel": "diesel", "gearbox": "automat", "seller_type": "privat"}
+    raw = estimate._load(str(model_path)).predict(pd.DataFrame([car]))[0]
+    assert estimate.predict_value(pd.DataFrame([car]), model_path)[0] == round(raw * 0.8)

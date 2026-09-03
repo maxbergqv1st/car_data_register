@@ -16,17 +16,11 @@ import pandas as pd
 
 from .. import config
 from ..models import FEATURE_COLUMNS
-from .estimate import _load
+from .estimate import predict_value
 
 # Gräns för fynd/dyr: >=10% under marknad = fynd, >=10% över = dyr, annars marknadspris.
 # ponytail: fast tröskel, gör den till parameter om UI:t behöver justera.
 _THRESHOLD = 0.10
-
-
-def _market_price(cars: pd.DataFrame, model_path: Path | str) -> list[int]:
-    """Modellens pris per rad. Kräver alla FEATURE_COLUMNS inkl seller_type."""
-    model = _load(str(model_path))
-    return [int(round(p)) for p in model.predict(cars[FEATURE_COLUMNS])]
 
 
 def _verdict(pct_below_market: float) -> str:
@@ -42,7 +36,7 @@ def deal(
 ) -> dict:
     """Är annonspriset ett fynd? `car` måste ha alla FEATURE_COLUMNS inkl seller_type."""
     row = pd.DataFrame([{c: car.get(c) for c in FEATURE_COLUMNS}])
-    predicted = _market_price(row, model_path)[0]
+    predicted = predict_value(row, model_path)[0]
     diff = predicted - asking_price  # + = billigare än marknad
     pct = diff / predicted if predicted else 0.0
     return {
@@ -75,7 +69,7 @@ def rank_deals(
 ) -> pd.DataFrame:
     """Annonser rankade efter hur långt under marknadspris de ligger, bäst först."""
     out = df.copy()
-    out["market_price"] = _market_price(out, model_path)
+    out["market_price"] = predict_value(out, model_path)
     out["diff"] = out["market_price"] - out["price_sek"]
     out["pct_below_market"] = (out["diff"] / out["market_price"]).round(3)
     cols = [
