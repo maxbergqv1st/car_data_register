@@ -13,7 +13,7 @@ import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from car_register import config, repository  # noqa: E402
-from car_register.ml import estimate  # noqa: E402
+from car_register.ml import estimate, value  # noqa: E402
 
 st.set_page_config(page_title="Bilvärderaren", page_icon="🚗")
 st.title("🚗 Bilvärderaren")
@@ -27,7 +27,9 @@ if n == 0:
     st.stop()
 st.caption(f"{n} annonser i databasen.")
 
-tab_browse, tab_estimate = st.tabs(["📋 Bläddra annonser", "💰 Värdera bil"])
+tab_browse, tab_estimate, tab_deals = st.tabs(
+    ["📋 Bläddra annonser", "💰 Värdera bil", "🏆 Bästa fynd"]
+)
 
 with tab_browse:
     brands = ["(alla)"] + repository.distinct_values("brand")
@@ -53,6 +55,11 @@ with tab_estimate:
             hp = c1.number_input("Hästkrafter", 40, 1000, 150)
             fuel = c2.selectbox("Bränsle", repository.distinct_values("fuel"))
             gearbox = c1.selectbox("Växellåda", repository.distinct_values("gearbox"))
+            seller = c2.selectbox("Säljare på annonsen", ["privat", "handlare"])
+            asking = c1.number_input(
+                "Begärt pris (kr)", 0, 5_000_000, 0, step=1000,
+                help="Fyll i annonsens pris för att se om det är ett fynd.",
+            )
             submitted = st.form_submit_button("Värdera")
 
         if submitted:
@@ -64,8 +71,39 @@ with tab_estimate:
                 "horsepower": int(hp),
                 "fuel": fuel,
                 "gearbox": gearbox,
+                "seller_type": seller,
             }
             result = estimate.estimate(car)
             c1, c2 = st.columns(2)
             c1.metric("Privatförsäljning", f"{result['privat']:,} kr".replace(",", " "))
             c2.metric("Via handlare", f"{result['handlare']:,} kr".replace(",", " "))
+            if asking > 0:
+                d = value.deal(car, int(asking))
+                emoji = {"fynd": "🟢", "marknadspris": "🟡", "dyr": "🔴"}[d["verdict"]]
+                side = "under" if d["pct_below_market"] >= 0 else "över"
+                st.subheader(f"{emoji} {d['verdict'].capitalize()}")
+                st.write(
+                    f"Begärt {int(asking):,} kr mot marknadsvärde {d['predicted']:,} kr "
+                    f"— {abs(d['pct_below_market']):.0%} {side} marknad.".replace(",", " ")
+                )
+
+            stats = value.comparables(repository.load_dataframe(), brand, model)
+            if stats["n"]:
+                st.caption(
+                    f"{stats['n']} liknande {brand} {model} i datan: median "
+                    f"{stats['median']:,} kr (spann {stats['min']:,}–{stats['max']:,} kr)."
+                    .replace(",", " ")
+                )
+
+with tab_deals:
+    if not Path(config.MODEL_PATH).exists():
+        st.warning("Ingen tränad modell. Kör `python scripts/run_train.py`.")
+    else:
+        st.caption(
+            "Annonser rankade efter hur långt under modellens marknadsvärde de "
+            "ligger — störst fynd överst. (pct_below_market: 0.15 = 15 % under.)"
+        )
+        st.dataframe(
+            value.rank_deals(repository.load_dataframe(), top=20),
+            use_container_width=True,
+        )
