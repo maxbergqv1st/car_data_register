@@ -7,10 +7,13 @@ från dataset till färdig värdering. Ingen scraping, ingen databas, ingen app.
 
 ```bash
 pip install -r requirements.txt
-jupyter notebook pipeline.ipynb
+
+jupyter notebook pipeline.ipynb   # pipelinen, cell för cell
+streamlit run streamlit_app.py    # frontend
 ```
 
-Kör cellerna uppifrån och ner.
+Kör notebookens celler uppifrån och ner. Streamlit-appen tränar samma modell
+en gång (cachas) och serverar värdering, fyndanalys och modellöversikt.
 
 ## Pipeline (`pipeline.ipynb`)
 
