@@ -14,6 +14,13 @@ from ..models import FEATURE_COLUMNS
 # Dra alltid av 20% för ett realistiskt värde — gäller både privat och handlare.
 VALUATION_DISCOUNT = 0.20
 
+# Privatmarginal: en handlare tar påslag för garanti/marginal, så privatköp är
+# billigare. Datan är ~100% handlarannonser -> seller_type-featuren kan inte
+# lära sig detta, så vi drar av marginalen deterministiskt för privata rader.
+# ponytail: kalibreringsratt. Får datan riktiga privatannonser, låt modellen
+# lära sig skillnaden istället och nolla den här.
+PRIVATE_MARGIN = 0.13
+
 
 @lru_cache(maxsize=1)
 def _load(model_path: str):
@@ -23,11 +30,17 @@ def _load(model_path: str):
 def predict_value(
     cars: pd.DataFrame, model_path: Path | str = config.MODEL_PATH
 ) -> list[int]:
-    """Modellens värdering per rad, med avdraget påslaget. Kräver FEATURE_COLUMNS."""
+    """Modellens värdering per rad: 20% avdrag + privatmarginal. Kräver FEATURE_COLUMNS."""
     model = _load(str(model_path))
-    factor = 1 - VALUATION_DISCOUNT
     X = cars.reindex(columns=FEATURE_COLUMNS)
-    return [int(round(p * factor)) for p in model.predict(X)]
+    factor = 1 - VALUATION_DISCOUNT
+    out = []
+    for price, seller in zip(model.predict(X), X["seller_type"]):
+        value = price * factor
+        if seller == "privat":
+            value *= 1 - PRIVATE_MARGIN
+        out.append(int(round(value)))
+    return out
 
 
 def estimate(car: dict, model_path: Path | str = config.MODEL_PATH) -> dict:

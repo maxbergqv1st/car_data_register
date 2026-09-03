@@ -57,5 +57,14 @@ def test_parse_list_skips_broken_and_maps_ev():
     assert cars[0].fuel == "el" and cars[0].horsepower == 100
 
 
+def test_parse_list_reads_private_seller():
+    ev = {**_SUPERB, "@id": "https://www.autouncle.se/se/d/7-privat-bil#product"}
+    html = _html(ev)
+    # React-stream-markör för bil 7 = privatannons (regexen tål quotes utan backslash)
+    html = html.replace("</body>", '/7/12345","isPaidClick":true,"isPrivateCar":true</body>')
+    cars = autouncle.parse_list(html)
+    assert len(cars) == 1 and cars[0].seller_type == "privat"
+
+
 def test_parse_list_empty_when_no_ld_json():
     assert autouncle.parse_list("<html><body>inget</body></html>") == []

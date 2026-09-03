@@ -16,12 +16,20 @@ sparad HTML utan nät.
 from __future__ import annotations
 
 import json
+import re
 
 from bs4 import BeautifulSoup
 
 from .. import config
 from ..models import CarListing
 from . import base
+
+# Säljartyp per bil ligger i en inbäddad React-stream, inte i ld+json:
+# .../<carId>/<clickId>","isPaidClick":<b>,"isPrivateCar":<b>  (quotes är \"-escapade).
+_SELLER_RE = re.compile(
+    r'/(\d+)/\d+\\?",\\?"isPaidClick\\?":\w+,\\?"isPrivateCar\\?":(true|false)'
+)
+_ID_RE = re.compile(r"/d/(\d+)")  # carId ur ld+json @id
 
 # AutoUncles etiketter -> vårt värde-set. Justera om de byter benämning.
 _FUEL = {
@@ -41,7 +49,15 @@ def _types(item: dict) -> list:
     return t if isinstance(t, list) else [t]
 
 
-def _car(item: dict) -> CarListing | None:
+def _seller_types(html: str) -> dict[str, str]:
+    """carId -> 'privat'/'handlare' ur React-streamen. Bilar utan träff får handlare."""
+    return {
+        cid: "privat" if val == "true" else "handlare"
+        for cid, val in _SELLER_RE.findall(html)
+    }
+
+
+def _car(item: dict, seller_type: str) -> CarListing | None:
     """Ett Vehicle-objekt ur ld+json -> CarListing (None om obligatoriskt saknas)."""
     try:
         hp = int(item["vehicleEngine"]["enginePower"]["value"])
@@ -58,9 +74,7 @@ def _car(item: dict) -> CarListing | None:
             fuel=_FUEL.get(item.get("fuelType", ""), "okänt"),
             gearbox=_TRANSMISSION.get(item.get("vehicleTransmission", ""), "okänt"),
             horsepower=hp,
-            # ponytail: ld+json saknar säljartyp; AutoUncle är handlar-tungt.
-            # Sätt handlare tills vi har en säkrare signal (kräver detaljsida).
-            seller_type="handlare",
+            seller_type=seller_type,
             price_sek=int(item["offers"]["price"]),
         )
     except (KeyError, TypeError, ValueError):
@@ -68,7 +82,8 @@ def _car(item: dict) -> CarListing | None:
 
 
 def parse_list(html: str) -> list[CarListing]:
-    """Ren funktion: listsidans HTML -> lista av CarListing."""
+    """Ren funktion: listsidans HTML -> lista av CarListing (med säljartyp)."""
+    sellers = _seller_types(html)
     soup = BeautifulSoup(html, "lxml")
     tag = soup.find("script", type="application/ld+json")
     if tag is None or not tag.string:
@@ -80,7 +95,9 @@ def parse_list(html: str) -> list[CarListing]:
         for el in node.get("itemListElement", []):
             item = el.get("item")
             if isinstance(item, dict) and "Vehicle" in _types(item):
-                car = _car(item)
+                cid = _ID_RE.search(item.get("@id", ""))
+                seller = sellers.get(cid.group(1)) if cid else None
+                car = _car(item, seller or "handlare")  # okänd -> handlar-default
                 if car:
                     out.append(car)
     return out

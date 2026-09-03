@@ -32,12 +32,18 @@ def test_estimate_private_vs_dealer(tmp_path):
     assert result["handlare"] > result["privat"]
 
 
-def test_valuation_applies_20pct_discount(tmp_path):
+def test_discount_and_private_margin(tmp_path):
     df = pd.DataFrame([lst.model_dump() for lst in synthetic.generate(400)])
     model_path = tmp_path / "model.joblib"
     train.train(df, model_path=model_path)
 
-    car = {"brand": "Volvo", "model": "V60", "model_year": 2019, "mileage_km": 50_000,
-           "horsepower": 150, "fuel": "diesel", "gearbox": "automat", "seller_type": "privat"}
-    raw = estimate._load(str(model_path)).predict(pd.DataFrame([car]))[0]
-    assert estimate.predict_value(pd.DataFrame([car]), model_path)[0] == round(raw * 0.8)
+    dealer = {"brand": "Volvo", "model": "V60", "model_year": 2019, "mileage_km": 50_000,
+              "horsepower": 150, "fuel": "diesel", "gearbox": "automat", "seller_type": "handlare"}
+    raw = estimate._load(str(model_path)).predict(pd.DataFrame([dealer]))[0]
+    # handlare: bara 20%-avdraget
+    assert estimate.predict_value(pd.DataFrame([dealer]), model_path)[0] == round(raw * 0.8)
+
+    priv = {**dealer, "seller_type": "privat"}
+    raw_priv = estimate._load(str(model_path)).predict(pd.DataFrame([priv]))[0]
+    # privat: 20%-avdrag OCH privatmarginal
+    assert estimate.predict_value(pd.DataFrame([priv]), model_path)[0] == round(raw_priv * 0.8 * 0.87)
