@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Optional
 
 from bs4 import BeautifulSoup
 
@@ -48,7 +47,7 @@ def parse_list_urls(html: str) -> list[str]:
     return urls
 
 
-def _first(value_str: str) -> Optional[str]:
+def _first(value_str: str) -> str | None:
     """Första värdet ur en data-layer-value (`"2015"` eller `"a","b"`)."""
     part = value_str.split(",")[0].strip().strip('"').strip()
     return part or None
@@ -65,7 +64,7 @@ def _data_layer(html: str) -> dict[str, str]:
     return out
 
 
-def parse_detail(html: str, url: Optional[str] = None) -> Optional[CarListing]:
+def parse_detail(html: str, url: Optional[str] = None) -> CarListing | None:
     """Ren funktion: annons-sidans HTML -> CarListing (None om obligatoriskt saknas)."""
     d = _data_layer(html)
     try:
@@ -94,7 +93,7 @@ def parse_detail(html: str, url: Optional[str] = None) -> Optional[CarListing]:
 
 
 def scrape(
-    query: str = "", pages: int = 1, max_items: Optional[int] = None
+    query: str = "", pages: int = 1, max_items: int | None = None
 ) -> list[CarListing]:
     """Hämtar `pages` sök-sidor och sen varje annons-sida. Rate-limitas i base.get."""
     urls: list[str] = []

@@ -2,6 +2,8 @@
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from car_register import synthetic  # noqa: E402
@@ -9,9 +11,7 @@ from car_register.ml import estimate, train  # noqa: E402
 
 
 def test_estimate_private_vs_dealer(tmp_path):
-    df = __import__("pandas").DataFrame(
-        [lst.model_dump() for lst in synthetic.generate(400)]
-    )
+    df = pd.DataFrame([lst.model_dump() for lst in synthetic.generate(400)])
     model_path = tmp_path / "model.joblib"
     metrics = train.train(df, model_path=model_path)
     assert metrics["r2"] > 0.5  # syntetisk data är lärbar

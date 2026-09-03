@@ -6,9 +6,9 @@ når DB eller modellen. Ogiltig data kastas här, inte längre ner i stacken.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 CURRENT_YEAR = datetime.now(timezone.utc).year
 
@@ -25,44 +25,16 @@ class CarListing(BaseModel):
     """En bilannons. Fält utan default är obligatoriska."""
 
     source: str
-    source_url: Optional[str] = None
+    source_url: str | None = None
     scraped_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     brand: str
     model: str
-    model_year: int
-    mileage_km: int
+    model_year: int = Field(ge=1950, le=CURRENT_YEAR + 1)
+    mileage_km: int = Field(ge=0)
     fuel: str
     gearbox: str
-    horsepower: int = 100
+    horsepower: int = Field(default=100, gt=0)
     seller_type: SellerType
-    price_sek: int
-    location: Optional[str] = None
-
-    @field_validator("model_year")
-    @classmethod
-    def _year_rimligt(cls, v: int) -> int:
-        if not (1950 <= v <= CURRENT_YEAR + 1):
-            raise ValueError(f"model_year {v} utanför rimligt intervall")
-        return v
-
-    @field_validator("mileage_km")
-    @classmethod
-    def _mileage_ickenegativ(cls, v: int) -> int:
-        if v < 0:
-            raise ValueError("mileage_km kan inte vara negativ")
-        return v
-
-    @field_validator("price_sek")
-    @classmethod
-    def _pris_positivt(cls, v: int) -> int:
-        if v <= 0:
-            raise ValueError("price_sek måste vara > 0")
-        return v
-
-    @field_validator("horsepower")
-    @classmethod
-    def _hk_positiv(cls, v: int) -> int:
-        if v <= 0:
-            raise ValueError("horsepower måste vara > 0")
-        return v
+    price_sek: int = Field(gt=0)
+    location: str | None = None

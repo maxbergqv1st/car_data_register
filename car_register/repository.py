@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 
@@ -54,8 +53,8 @@ def load_dataframe(db_path: Path | str = config.DB_PATH) -> pd.DataFrame:
 
 
 def fetch_listings(
-    brand: Optional[str] = None,
-    seller_type: Optional[str] = None,
+    brand: str | None = None,
+    seller_type: str | None = None,
     limit: int = 200,
     db_path: Path | str = config.DB_PATH,
 ) -> list[dict]:

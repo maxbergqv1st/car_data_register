@@ -17,7 +17,8 @@ _robots_cache: dict[str, RobotFileParser] = {}
 
 
 def _robots(url: str) -> RobotFileParser:
-    base = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+    p = urlparse(url)
+    base = f"{p.scheme}://{p.netloc}"
     if base not in _robots_cache:
         rp = RobotFileParser()
         rp.set_url(f"{base}/robots.txt")
