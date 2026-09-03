@@ -16,5 +16,5 @@ REQUEST_DELAY_SECONDS = 2.5
 REQUEST_TIMEOUT = 15
 MAX_RETRIES = 3
 
-# Blocket bil-sök. `q` är fritextsökningen, `page` paginering.
-BLOCKET_SEARCH_URL = "https://www.blocket.se/bilar/sok"
+# AutoUncle begagnat-lista. Paginering med `page` (filtrerad sök är robots-blockad).
+AUTOUNCLE_SEARCH_URL = "https://www.autouncle.se/se/begagnade-bilar"

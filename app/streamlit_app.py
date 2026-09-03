@@ -96,7 +96,12 @@ with tab_estimate:
                 )
 
 with tab_deals:
-    if not Path(config.MODEL_PATH).exists():
+    st.subheader("🔒 Bästa fynd (premium)")
+    # ponytail: leksaks-betalvägg, ett hårdkodat lösenord. INTE riktig säkerhet
+    # (rankningen är publik bildata); byt till riktig auth om något känsligt låses.
+    if st.text_input("Lösenord", type="password") != "money":
+        st.warning("Lås upp med lösenord för att se de bästa fynden.")
+    elif not Path(config.MODEL_PATH).exists():
         st.warning("Ingen tränad modell. Kör `python scripts/run_train.py`.")
     else:
         st.caption(

@@ -21,12 +21,18 @@ def _robots(url: str) -> RobotFileParser:
     base = f"{p.scheme}://{p.netloc}"
     if base not in _robots_cache:
         rp = RobotFileParser()
-        rp.set_url(f"{base}/robots.txt")
+        # Hämta robots.txt med SAMMA User-Agent som sidorna. RobotFileParser.read()
+        # använder default-UA, som sajter (t.ex. AutoUncle) svarar 403 på -> parsern
+        # skulle då tolka det som "allt förbjudet". Med vår UA får vi rätt regler.
         try:
-            rp.read()
-        except Exception:
-            # Kan inte läsa robots.txt -> var försiktig, tillåt men logga inte spam.
-            rp.parse([])
+            resp = requests.get(
+                f"{base}/robots.txt",
+                headers={"User-Agent": config.USER_AGENT},
+                timeout=config.REQUEST_TIMEOUT,
+            )
+            rp.parse(resp.text.splitlines() if resp.ok else [])
+        except requests.RequestException:
+            rp.parse([])  # oåtkomlig robots.txt -> tillåt (RFC 9309: 4xx = allow)
         _robots_cache[base] = rp
     return _robots_cache[base]
 
