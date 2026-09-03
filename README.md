@@ -36,6 +36,7 @@ python scripts/run_scrape.py --synthetic 400     # om AutoUncle blockerar
 
 # 2. Träna modellen
 python scripts/run_train.py
+python scripts/run_evaluate.py                   # jämför RF vs linjär baseline (MAE/MSE/RMSE + CV)
 
 # 3. Starta appen
 streamlit run app/streamlit_app.py

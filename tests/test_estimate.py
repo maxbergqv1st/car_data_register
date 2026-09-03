@@ -47,3 +47,14 @@ def test_discount_and_private_margin(tmp_path):
     raw_priv = estimate._load(str(model_path)).predict(pd.DataFrame([priv]))[0]
     # privat: 20%-avdrag OCH privatmarginal
     assert estimate.predict_value(pd.DataFrame([priv]), model_path)[0] == round(raw_priv * 0.8 * 0.87)
+
+
+def test_evaluate_compares_both_models():
+    df = pd.DataFrame([lst.model_dump() for lst in synthetic.generate(400)])
+    res = train.evaluate(df, k=5)
+    assert set(res) == {"RandomForest (nuvarande)", "LinearRegression (baseline)"}
+    for m in res.values():
+        for key in ("mae", "mse", "rmse", "cv_mae_mean", "cv_mae_std"):
+            assert m[key] > 0
+        assert m["rmse"] == m["mse"] ** 0.5  # RMSE = roten ur MSE
+        assert m["cv_rmse_mean"] >= m["cv_mae_mean"]  # RMSE >= MAE per definition
