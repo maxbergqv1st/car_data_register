@@ -116,7 +116,7 @@ with tab_value:
         doors = c2.selectbox("Dörrar", [2, 3, 4, 5], index=2)
         owners = c3.selectbox("Antal ägare", [1, 2, 3, 4, 5])
         asking = c1.number_input("Begärt pris (kr, valfritt)", 0, 5_000_000, 0, step=10_000,
-                                 help="Fyll i annonspriset för att se om det är ett fynd.")
+                                help="Fyll i annonspriset för att se om det är ett fynd.")
         submitted = st.form_submit_button("Värdera", type="primary", use_container_width=True)
 
     if submitted:
