@@ -1,4 +1,5 @@
 pandas
+matplotlib
 scikit-learn
 notebook
 streamlit
